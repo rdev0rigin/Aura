@@ -3,29 +3,32 @@
 <head>
 	<meta charset="UTF-8">
 	<title>Web Client</title>
+	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
 </head>
 <body>
     <button onclick="onPub()">Publish</button>
-	<script src="https://unpkg.com/autobahn-browser@^18/autobahn.js"></script>
 
+	<div id="SubscriptionTest">
+
+		<input type="text" id="RealmInput">
+		<button onclick="subscribe(document.getElementById('RealmInput').value)">Subscribe</button>
+	</div>
+
+	<script src="https://unpkg.com/autobahn-browser@^18/autobahn.js"></script>
 	<script>
-        var sess = {};
 		try {
 			// for Node.js
 			var autobahn = require('autobahn');
 		} catch (e) {
 			// for browsers (where AutobahnJS is available globally)
 		}
-
-		var connection = new autobahn.Connection({url: 'ws://127.0.0.1:3131/', realm: 'nexus.aura.realm1'});
-
-		connection.onopen = function (session) {
+		const connection = new autobahn.Connection({url: 'ws://127.0.0.1:3131/', realm: 'nexus.aura.realm.1'});
+        let session = {};
+		connection.onopen = (sess) => session = sess;
 			// 1) subscribe to a topic
-			function onevent(args) {
-				console.log("Event:", args[0]);
-			}
-			session.subscribe('hello.wamp', onevent);
-            sess = session;
+		function onevent(args) {
+			console.log("Event:", args[0]);
+		}
 
 
 
@@ -41,7 +44,10 @@
 			//         console.log("Result:", res);
 			//     }
 			// );
-		};
+
+		function subscribe(realm) {
+			session.subscribe(realm, onevent);
+		}
 
 		function onPub() {
 			sess.publish('hello.wamp', ['Hello, Nexus!']);

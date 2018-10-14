@@ -14,38 +14,39 @@ var routerStatusChan = make(chan string)
 var logger = log.New(os.Stdout, "aura: ", 0)
 
 var auraRouterSetup = router2.Options{
-	Realms: []*router.RealmConfig{
-		&router.RealmConfig{
-			URI: "nexus.aura.realm.1",
-			AnonymousAuth: true,
-		},
-		&router.RealmConfig{
-			URI: "nexus.aura.realm.2",
-			AnonymousAuth: true,
-		},
-	},
-	Url:          "127.0.0.1:3131",
-	AllowOrigins: []string{"localhost:*"},
-	Logger: logger,
-	Status: routerStatusChan,
+	Url:            "127.0.0.1:3131",
+	AllowOrigins:   []string{"localhost:*"},
+	Logger:         logger,
+	Status:         routerStatusChan,
+	Realms:         []*router.RealmConfig{
+						&router.RealmConfig{
+							URI: "nexus.aura.realm.1",
+							AnonymousAuth: true,
+						},
+						&router.RealmConfig{
+							URI: "nexus.aura.realm.2",
+							AnonymousAuth: true,
+						},
+					},
 }
 
 var subscription = subscriber.Options{
-	Realm: "nexus.aura.realm.1",
-	Topic: "Default",
-	Logger: logger,
-	WSUrl: wsURL(auraRouterSetup.Url),
-	EventHandler: func(args wamp.List, kwargs wamp.Dict, details wamp.Dict) {
+	Realm:          "nexus.aura.realm.1",
+	Topic:          "Default",
+	Logger:         logger,
+	WSUrl:          wsURL(auraRouterSetup.Url),
+	EventHandler:   func(args wamp.List, kwargs wamp.Dict, details wamp.Dict) {
 
-	},
-	Debug: true,
+					},
+	Debug:          true,
 }
 
-
-
 func main() {
+
 	go router2.StartRouter(auraRouterSetup)
+
 	for status := range routerStatusChan {
+
 		if status == "listening" {
 			go subscriber.InitializeSubscriber(subscription)
 		}
@@ -55,7 +56,6 @@ func main() {
 			break
 		}
 	}
-
 }
 
 func wsURL(url string) string {
