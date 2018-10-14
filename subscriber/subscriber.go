@@ -15,6 +15,8 @@ type Options struct {
 	WSUrl string
 	EventHandler func(args wamp.List, kwargs wamp.Dict, details wamp.Dict)
 	Debug bool
+	Status *chan string
+
 }
 
 

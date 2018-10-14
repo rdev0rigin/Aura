@@ -9,7 +9,7 @@ import (
 	"os"
 )
 
-var onRouterStart = make(chan string)
+var routerStatusChan = make(chan string)
 
 var logger = log.New(os.Stdout, "aura: ", 0)
 
@@ -27,7 +27,7 @@ var auraRouterSetup = router2.Options{
 	Url:          "127.0.0.1:3131",
 	AllowOrigins: []string{"localhost:*"},
 	Logger: logger,
-
+	Status: routerStatusChan,
 }
 
 var subscription = subscriber.Options{
@@ -44,11 +44,17 @@ var subscription = subscriber.Options{
 
 
 func main() {
-	router2.StartRouter(auraRouterSetup)
-	//for {
-		//subscriber.InitializeSubscriber(subscription) <- onRouterStart
+	go router2.StartRouter(auraRouterSetup)
+	for status := range routerStatusChan {
+		if status == "listening" {
+			go subscriber.InitializeSubscriber(subscription)
+		}
 
-	//}
+		if status == "closed" {
+			logger.Println("Router Shutdown")
+			break
+		}
+	}
 
 }
 

@@ -12,6 +12,7 @@ type Options struct {
 	Topic string
 	Logger *log.Logger
 	WSUrl string
+	Status *chan string
 }
 
 func InitializePublisher(options Options) {

@@ -13,33 +13,40 @@ type Options struct {
 	AllowOrigins []string
 	Debug bool
 	Logger *log.Logger
+	Status chan string
 }
 
 
-func StartRouter(setup Options) {
+func statusCall(channel chan string, message string) {
+	channel <- message
+}
+
+func StartRouter(options Options) {
 	config := &router.Config{
-		Debug: setup.Debug,
-		RealmConfigs: setup.Realms,
+		Debug:        options.Debug,
+		RealmConfigs: options.Realms,
 	}
 
-	auraRouter, err := router.NewRouter(config, setup.Logger)
+	auraRouter, err := router.NewRouter(config, options.Logger)
 
 	if err != nil {
 		log.Fatal(err)
 	}
-
+	defer statusCall(options.Status, "closed")
 	defer auraRouter.Close()
 
 	wsS := router.NewWebsocketServer(auraRouter)
 
-	wsS.AllowOrigins(setup.AllowOrigins)
+	wsS.AllowOrigins(options.AllowOrigins)
 
-	closer, err := wsS.ListenAndServe(setup.Url)
+	closer, err := wsS.ListenAndServe(options.Url)
 	if err != nil {
 		log.Fatal("Ws Server Error: ", err)
 	}
 
-	log.Printf("Websocket server listening on ws://%s/", setup.Url)
+	options.Status <- "listening"
+
+	log.Printf("Websocket server listening on ws://%s/", options.Url)
 
 	shutdown := make(chan os.Signal, 1)
 	signal.Notify(shutdown, os.Interrupt)
