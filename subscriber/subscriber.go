@@ -39,14 +39,15 @@ func InitializeSubscriber(setup Options) {
 	if err != nil {
 		setup.Logger.Fatal(err)
 	}
+	setup.Logger.Println("Subscribed")
 
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt)
 	select {
-	case <-sigChan:
-	case <-subscriber.Done():
-		setup.Logger.Println("Router Gone Exiting")
-		return
+		case <-sigChan:
+		case <-subscriber.Done():
+			setup.Logger.Println("Router Gone Exiting")
+			return
 	}
 
 	if err = subscriber.Unsubscribe(setup.Topic); err != nil {

@@ -3,6 +3,7 @@ package main
 import (
 	router2 "aura/router"
 	"aura/subscriber"
+	"fmt"
 	"github.com/gammazero/nexus/router"
 	"github.com/gammazero/nexus/wamp"
 	"log"
@@ -36,7 +37,7 @@ var subscription = subscriber.Options{
 	Logger:         logger,
 	WSUrl:          wsURL(auraRouterSetup.Url),
 	EventHandler:   func(args wamp.List, kwargs wamp.Dict, details wamp.Dict) {
-
+						fmt.Println("EH Args", args)
 					},
 	Debug:          true,
 }
