@@ -3,50 +3,128 @@
 <head>
 	<meta charset="UTF-8">
 	<title>Web Client</title>
+	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
 </head>
 <body>
-    <button onclick="onPub()">Publish</button>
-	<script src="https://unpkg.com/autobahn-browser@^18/autobahn.js"></script>
+	<div id="MainContainer" class="container">
+		<div class="form-group" id="SubscriptionTest">
+			<input class="form-control" type="text" id="RealmInput" placeholder="Topic">
+			<button class="btn btn-primary btn-submit" onclick="onSubscribeHandler('RealmInput')">Subscribe</button>
+		</div>
+	</div>
 
+	<script src="https://unpkg.com/autobahn-browser@^18/autobahn.js"></script>
 	<script>
-        var sess = {};
-		try {
+        let sessions = new Map();
+
+        try {
 			// for Node.js
 			var autobahn = require('autobahn');
 		} catch (e) {
 			// for browsers (where AutobahnJS is available globally)
 		}
 
-		var connection = new autobahn.Connection({url: 'ws://127.0.0.1:3131/', realm: 'nexus.aura.realm1'});
+		const connection = new autobahn.Connection({url: 'ws://127.0.0.1:3131/', realm: 'nexus.aura.realm.1'});
 
-		connection.onopen = function (session) {
-			// 1) subscribe to a topic
-			function onevent(args) {
-				console.log("Event:", args[0]);
-			}
-			session.subscribe('hello.wamp', onevent);
-            sess = session;
+        // Assign session object to session when connection opens
 
+        connection.onopen = (session) => {
+            sessions.set('Main', session)
+        };
 
+        // Open Connection
 
-			// 3) register a procedure for remoting
-			// function add2(args) {
-			//     return args[0] + args[1];
-			// }
-			// session.register('com.myapp.add2', add2);
-			//
-			// 4) call a remote procedure
-			// session.call('com.myapp.add2', [2, 3]).then(
-			//     function (res) {
-			//         console.log("Result:", res);
-			//     }
-			// );
-		};
-
-		function onPub() {
-			sess.publish('hello.wamp', ['Hello, Nexus!']);
-        }
 		connection.open();
+
+        /**
+		 * The event handler for the primary realm subscription.
+         * @param args
+         */
+		function onEvent(args) {
+
+			console.log("Event:", args);
+		}
+
+        /**
+		 * The handler for when subscription to topic is made.
+         * @param id
+         */
+		function onSubscribeHandler(id) {
+			const topic = document.getElementById(id).value;
+			subscribeToTopic({topic: topic})
+				.then(res => {
+					console.log('Response from sub: ', res)
+				})
+				.catch(err => {
+					console.log('Error subscribing: ', err);
+				})
+		}
+
+        /**
+		 * Subscribes to a topic that matches one on the router ("Default" is the test topic)
+		 * and adds controls to the DOM.
+		 *
+         * @param options
+         * @returns {Promise<*>}
+         */
+		async function subscribeToTopic(options) {
+			const result = await sessions.get("Main").subscribe(options.topic, onEvent);
+			if (!result) {
+				return Promise.reject();
+			}
+			const sessionElRef = document.createElement('div');
+			result.handler = topicEventHandler;
+			sessions.set(options.topic, result);
+			sessionElRef.innerHTML = subscriptionTemplate({topic: options.topic});
+			document.getElementById("MainContainer").appendChild(sessionElRef);
+			return result;
+
+			function topicEventHandler(event) {
+				const logContainerRef = document.getElementById(options.topic.concat('Log'));
+				for (let message of event) {
+					const logRef = document.createElement('div');
+					logRef.className = 'alert alert-primary';
+					logRef.innerText = message;
+					logContainerRef.appendChild(logRef);
+				}
+			}
+		}
+
+        /**
+		 * Handles sending messages to the router's topic.
+         * @param topic
+         */
+		function publishHandler(topic) {
+			const payload = document.getElementById(topic.concat("Input")).value;
+			sessions.get(topic).session.publish(topic, [payload]);
+        }
+
+        /**
+		 * Unsubscribes from a topic on the router.
+         * @param topic
+         */
+        function unsubscribeHandler(topic) {
+			sessions.get(topic).unsubscribe()
+		}
+
+        /**
+		 * Template for each subscrtions controls.
+		 *
+         * @param props
+         * @returns {string}
+         */
+		function subscriptionTemplate(props) {
+			return `
+				<div class="subscription">
+					<div id="${props.topic}Log">
+
+					</div>
+					<input type="text" id="${props.topic}Input"/>
+					<button class="btn btn-lg btn-submit" onclick="publishHandler('${props.topic}')"> Publish </button>
+					<button class="btn btn-lg btn-warning" onclick="unsubscribeHandler('${props.topic}')" > Unsubscribe </button>
+				</div>
+			`
+		}
 	</script>
 
 </body>
